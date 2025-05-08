@@ -1,11 +1,15 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>고스톱</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <title>고스톱</title>
+  <!-- API 로드 완료 후 실행되도록 async와 defer 제거 -->
+  <script
+          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC_ugN5vmPjMY4mPghFt-aqcDWCeqDRGU0&libraries=places"
+  ></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/src/main.tsx"></script>
+</body>
 </html>

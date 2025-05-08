@@ -6,13 +6,20 @@ function App() {
   useRegisterSW()
   const [selectedTransports, setSelectedTransports] = useState<string[]>([])
   const [time, setTime] = useState(6)
+  const [location, setLocation] = useState('')
 
   const toggleTransport = (type: string) => {
     setSelectedTransports((prev) =>
-        prev.includes(type)
-            ? prev.filter((t) => t !== type)
-            : [...prev, type]
+        prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     )
+  }
+
+  const handleGetLocation = () => {
+    alert('위치 가져오기 기능은 제거되었습니다.')
+  }
+
+  const generateFilteredRoute = () => {
+    alert('경로 추천 기능은 제거되었습니다.')
   }
 
   return (
@@ -28,12 +35,6 @@ function App() {
           </header>
 
           <main className="app-main">
-            <section className="intro-section">
-              <h2 className="intro-title">랜덤 여행을 시작하세요!</h2>
-              <p className="intro-desc">새로운 모험이 당신을 기다립니다</p>
-            </section>
-
-            {/* 현재 위치 섹션을 이동 수단 섹션 위로 이동 */}
             <section className="location-section">
               <h3 className="section-title">현재 위치</h3>
               <div className="location-input-wrapper">
@@ -41,8 +42,10 @@ function App() {
                     type="text"
                     placeholder="위치를 입력하세요"
                     className="location-input"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
                 />
-                <button className="location-btn">
+                <button className="location-btn" onClick={handleGetLocation}>
                   <i className="fas fa-location-crosshairs location-btn-icon"></i>
                 </button>
               </div>
@@ -78,21 +81,22 @@ function App() {
               <div className="time-range-container">
                 <input
                     type="range"
-                    min="1"
-                    max="12"
+                    min="20"
+                    max="720"
                     value={time}
                     onChange={(e) => setTime(parseInt(e.target.value))}
                     className="time-range-slider"
+                    step="10"
                 />
                 <div className="time-range-labels">
-                  <span className="time-range-label">1시간</span>
-                  <span className="time-range-label">{time}시간</span>
+                  <span className="time-range-label">20분</span>
+                  <span className="time-range-label">{Math.floor(time / 60)}시간 {time % 60}분</span>
                   <span className="time-range-label">12시간</span>
                 </div>
               </div>
             </section>
 
-            <button className="start-btn">
+            <button className="start-btn" onClick={generateFilteredRoute}>
               <i className="fas fa-random start-btn-icon"></i>
               랜덤 여행 시작하기
             </button>
