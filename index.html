@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>고스톱</title>
-  <!-- API 로드 완료 후 실행되도록 async와 defer 제거 -->
+  <link rel="manifest" href="/manifest.webmanifest">
   <script
-          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC_ugN5vmPjMY4mPghFt-aqcDWCeqDRGU0&libraries=places"
-  ></script>
+          type="text/javascript"
+          src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d67c4a1061ae07aadde974e8a5d2e89c&autoload=false">
+  </script>
 </head>
 <body>
 <div id="root"></div>

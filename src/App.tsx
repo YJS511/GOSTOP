@@ -1,12 +1,24 @@
 import './App.css'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { Map, MapMarker, useKakaoLoader as useKakaoLoaderOrigin } from 'react-kakao-maps-sdk'
+
+function useKakaoLoader() {
+  useKakaoLoaderOrigin({
+    appkey: '6ec8020798deac7ef2f8897ad1c5ccf1', // 자신의 appkey로 교체
+    libraries: ['services'],
+  })
+}
 
 function App() {
   useRegisterSW()
+  useKakaoLoader()
+
   const [selectedTransports, setSelectedTransports] = useState<string[]>([])
   const [time, setTime] = useState(6)
-  const [location, setLocation] = useState('')
+  const [address, setAddress] = useState('')
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
 
   const toggleTransport = (type: string) => {
     setSelectedTransports((prev) =>
@@ -14,13 +26,41 @@ function App() {
     )
   }
 
-  const handleGetLocation = () => {
-    alert('위치 가져오기 기능은 제거되었습니다.')
+  // 현재 위치를 가져오는 함수
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const latitude = position.coords.latitude
+            const longitude = position.coords.longitude
+            setLat(latitude)
+            setLng(longitude)
+
+            // 위도, 경도로 도로명 주소 찾기
+            const geocoder = new window.kakao.maps.services.Geocoder()
+            const latlng = new window.kakao.maps.LatLng(latitude, longitude)
+
+            geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result, status) => {
+              if (status === window.kakao.maps.services.Status.OK) {
+                setAddress(result[0].address.address_name)
+              }
+            })
+          },
+          () => {
+            alert('위치를 가져오는 데 실패했습니다.')
+          }
+      )
+    } else {
+      alert('이 브라우저는 위치를 지원하지 않습니다.')
+    }
   }
 
-  const generateFilteredRoute = () => {
-    alert('경로 추천 기능은 제거되었습니다.')
-  }
+  // 위치 문자열이 위도,경도 형식일 때 지도에 표시
+  const isValidCoords = lat !== null && lng !== null
+
+  useEffect(() => {
+    getCurrentLocation() // 컴포넌트가 마운트되면 현재 위치를 가져옴
+  }, [])
 
   return (
       <div className="app-wrapper">
@@ -42,13 +82,24 @@ function App() {
                     type="text"
                     placeholder="위치를 입력하세요"
                     className="location-input"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
                 />
-                <button className="location-btn" onClick={handleGetLocation}>
+                <button className="location-btn" onClick={getCurrentLocation}>
                   <i className="fas fa-location-crosshairs location-btn-icon"></i>
                 </button>
               </div>
+              {isValidCoords && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <Map
+                        center={{ lat, lng }}
+                        style={{ width: '100%', height: '250px', borderRadius: '10px' }}
+                        level={3}
+                    >
+                      <MapMarker position={{ lat, lng }} />
+                    </Map>
+                  </div>
+              )}
             </section>
 
             <section className="transport-section">
@@ -90,13 +141,15 @@ function App() {
                 />
                 <div className="time-range-labels">
                   <span className="time-range-label">20분</span>
-                  <span className="time-range-label">{Math.floor(time / 60)}시간 {time % 60}분</span>
+                  <span className="time-range-label">
+                    {Math.floor(time / 60)}시간 {time % 60}분
+                  </span>
                   <span className="time-range-label">12시간</span>
                 </div>
               </div>
             </section>
 
-            <button className="start-btn" onClick={generateFilteredRoute}>
+            <button className="start-btn" onClick={() => alert('경로 추천 기능은 제거되었습니다.')}>
               <i className="fas fa-random start-btn-icon"></i>
               랜덤 여행 시작하기
             </button>
