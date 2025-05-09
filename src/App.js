@@ -9,7 +9,9 @@ function App() {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const circleRef = useRef(null);
+  const outerCircleRef = useRef(null);
+  const innerCircleRef = useRef(null);
+  const ringPolygonRef = useRef(null);
 
   const toggleTransport = (type) => {
     setSelectedTransports((prev) => {
@@ -118,10 +120,18 @@ function App() {
     if (!markerRef.current || !mapInstanceRef.current) {
       return;
     }
-    // Remove previous circle if exists
-    if (circleRef.current) {
-      circleRef.current.setMap(null);
-      circleRef.current = null;
+    // Remove previous circles and polygon if exist
+    if (outerCircleRef.current) {
+      outerCircleRef.current.setMap(null);
+      outerCircleRef.current = null;
+    }
+    if (innerCircleRef.current) {
+      innerCircleRef.current.setMap(null);
+      innerCircleRef.current = null;
+    }
+    if (ringPolygonRef.current) {
+      ringPolygonRef.current.setMap(null);
+      ringPolygonRef.current = null;
     }
     if (selectedTransports.length === 0) {
       return;
@@ -151,19 +161,77 @@ function App() {
     const totalSpeed = adjustedSpeeds.reduce((acc, s) => acc + s, 0);
     const avgSpeedMph = totalSpeed / transports.length;
     const avgSpeedMpm = avgSpeedMph / 60; // meters per minute
-    let radius = avgSpeedMpm * time; // meters
+    let outerRadius = avgSpeedMpm * time; // meters
 
     // Apply reduction factors based on selected transport modes
     // Use the most restrictive (minimum) reduction factor among selected transports
     if (transports.length > 0) {
       const reductions = transports.map((t) => reductionTable[t] || 1);
       const minReduction = Math.min(...reductions);
-      radius = radius * minReduction;
+      outerRadius = outerRadius * minReduction;
     }
 
-    circleRef.current = new window.Tmapv2.Circle({
+    const innerRadius = outerRadius * 0.72;
+
+    // Draw outer and inner circles with no fill (transparent)
+    outerCircleRef.current = new window.Tmapv2.Circle({
       center: new window.Tmapv2.LatLng(latitude, longitude),
-      radius: radius,
+      radius: outerRadius,
+      strokeWeight: 2,
+      strokeColor: "#3399ff",
+      strokeOpacity: 0.7,
+      fillColor: "#3399ff",
+      fillOpacity: 0,
+      map: mapInstanceRef.current,
+    });
+
+    innerCircleRef.current = new window.Tmapv2.Circle({
+      center: new window.Tmapv2.LatLng(latitude, longitude),
+      radius: innerRadius,
+      strokeWeight: 2,
+      strokeColor: "#3399ff",
+      strokeOpacity: 0.7,
+      fillColor: "#3399ff",
+      fillOpacity: 0,
+      map: mapInstanceRef.current,
+    });
+
+    // Create polygon ring (donut shape) between outerRadius and innerRadius
+    // Use many small points for smooth ring
+    const pointsCount = 60; // number of points for smooth circle
+
+    // Helper function to compute lat/lng offset by meters
+    const metersToLatLng = (lat, lng, dx, dy) => {
+      // dx: east-west offset in meters
+      // dy: north-south offset in meters
+      const latConv = 111320;
+      const lngConv = 111320 * Math.cos((lat * Math.PI) / 180);
+      const newLat = lat + dy / latConv;
+      const newLng = lng + dx / lngConv;
+      return new window.Tmapv2.LatLng(newLat, newLng);
+    };
+
+    const outerPoints = [];
+    const innerPoints = [];
+    for (let i = 0; i <= pointsCount; i++) {
+      const angle = (2 * Math.PI * i) / pointsCount;
+      // Outer circle point (x,y)
+      const ox = outerRadius * Math.cos(angle);
+      const oy = outerRadius * Math.sin(angle);
+      outerPoints.push(metersToLatLng(latitude, longitude, ox, oy));
+    }
+    for (let i = pointsCount; i >= 0; i--) {
+      const angle = (2 * Math.PI * i) / pointsCount;
+      // Inner circle point (x,y)
+      const ix = innerRadius * Math.cos(angle);
+      const iy = innerRadius * Math.sin(angle);
+      innerPoints.push(metersToLatLng(latitude, longitude, ix, iy));
+    }
+
+    const ringPath = outerPoints.concat(innerPoints);
+
+    ringPolygonRef.current = new window.Tmapv2.Polygon({
+      paths: ringPath,
       strokeWeight: 2,
       strokeColor: "#3399ff",
       strokeOpacity: 0.7,
@@ -171,6 +239,7 @@ function App() {
       fillOpacity: 0.2,
       map: mapInstanceRef.current,
     });
+
   }, [selectedTransports, time])
 
   return (
@@ -256,17 +325,21 @@ function App() {
                 if (
                   !markerRef.current ||
                   !mapInstanceRef.current ||
-                  !circleRef.current
+                  !outerCircleRef.current ||
+                  !innerCircleRef.current
                 ) {
                   alert('지도를 초기화하거나 이동수단/시간을 선택해주세요.');
                   return;
                 }
-                // Get center and radius
-                const center = circleRef.current.getCenter();
-                const radius = circleRef.current.getRadius(); // in meters
-                // Generate random angle and distance
+                // Get center and radii
+                const center = outerCircleRef.current.getCenter();
+                const outerRadius = outerCircleRef.current.getRadius(); // in meters
+                const innerRadius = innerCircleRef.current.getRadius();
+
+                // Generate random angle and distance between innerRadius and outerRadius
                 const theta = Math.random() * 2 * Math.PI;
-                const r = radius * Math.sqrt(Math.random());
+                const r = innerRadius + (outerRadius - innerRadius) * Math.sqrt(Math.random());
+
                 // Convert meters to degrees
                 // 1 deg latitude ~= 111,320 m, 1 deg longitude ~= 111,320 * cos(lat)
                 const latConv = 111320;
